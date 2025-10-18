@@ -1,0 +1,14 @@
+[tool.pylint]
+init-hook = "import sys, os; sys.path[:0] = [os.path.abspath('.'), os.path.abspath('src')]"
+ignore = ["alembic", "venv", "__pycache__"]
+disable = ["too-few-public-methods"]
+max-line-length = 105
+
+[tool.mypy]
+explicit_package_bases = true
+python_version = "3.13"
+exclude = ['alembic/', 'venv/']
+plugins = ['pydantic.mypy']
+
+[tool.bandit]
+exclude = ["alembic", "venv"]
