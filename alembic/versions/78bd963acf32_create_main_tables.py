@@ -77,8 +77,8 @@ def upgrade() -> None:
     sa.Column('created_at', sa.DateTime(timezone=True), nullable=False, comment='Дата создания'),
     sa.Column('status', sa.Enum('ACTIVE', 'ACCEPTED', 'ARCHIVED', name='applicationstatus', native_enum=False), nullable=False, comment='Статус заявки'),
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
-    sa.ForeignKeyConstraint(['student_id'], ['students.id'], ondelete='DO NOTHING'),
-    sa.ForeignKeyConstraint(['subject_id'], ['subjects.id'], ondelete='DO NOTHING'),
+    sa.ForeignKeyConstraint(['student_id'], ['students.id'], ondelete='NO ACTION'),
+    sa.ForeignKeyConstraint(['subject_id'], ['subjects.id'], ondelete='NO ACTION'),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('hidden_teachers',
@@ -96,7 +96,7 @@ def upgrade() -> None:
     sa.Column('created_at', sa.DateTime(timezone=True), nullable=False, comment='Дата создания'),
     sa.Column('is_published', sa.Boolean(), nullable=False, comment='Опубликован или нет'),
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
-    sa.ForeignKeyConstraint(['student_id'], ['students.id'], ondelete='DO NOTHING'),
+    sa.ForeignKeyConstraint(['student_id'], ['students.id'], ondelete='NO ACTION'),
     sa.ForeignKeyConstraint(['teacher_id'], ['teachers.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id')
     )
@@ -120,9 +120,9 @@ def upgrade() -> None:
     sa.Column('application_id', sa.Integer(), nullable=False, comment='ID заявки'),
     sa.Column('status', sa.Enum('REQUEST', 'ACTIVE', 'ARCHIVED', name='matchstatus', native_enum=False), nullable=False, comment='Статус'),
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
-    sa.ForeignKeyConstraint(['application_id'], ['applications.id'], ondelete='DO NOTHING'),
-    sa.ForeignKeyConstraint(['student_id'], ['students.id'], ondelete='DO NOTHING'),
-    sa.ForeignKeyConstraint(['teacher_id'], ['teachers.id'], ondelete='DO NOTHING'),
+    sa.ForeignKeyConstraint(['application_id'], ['applications.id'], ondelete='NO ACTION'),
+    sa.ForeignKeyConstraint(['student_id'], ['students.id'], ondelete='NO ACTION'),
+    sa.ForeignKeyConstraint(['teacher_id'], ['teachers.id'], ondelete='NO ACTION'),
     sa.PrimaryKeyConstraint('id')
     )
     # ### end Alembic commands ###

@@ -12,7 +12,7 @@ class Review(Base):
     """Модель отзыва"""
 
     student_id: Mapped[int] = mapped_column(
-        ForeignKey("students.id", ondelete="DO NOTHING"),
+        ForeignKey("students.id", ondelete="NO ACTION"),
         nullable=False,
         comment="ID студента, оставившего отзыв")
     teacher_id: Mapped[int] = mapped_column(
