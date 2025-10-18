@@ -30,12 +30,12 @@ class Application(Base):
     """Модель заявки"""
 
     student_id: Mapped[int] = mapped_column(
-        ForeignKey("students.id", ondelete="DO NOTHING"),
+        ForeignKey("students.id", ondelete="NO ACTION"),
         nullable=False,
         comment="ID студента")
 
     subject_id: Mapped[int] = mapped_column(
-        ForeignKey("subjects.id", ondelete="DO NOTHING"),
+        ForeignKey("subjects.id", ondelete="NO ACTION"),
         nullable=False,
         comment="ID предмета")
 

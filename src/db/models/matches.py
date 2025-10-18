@@ -20,17 +20,17 @@ class Match(Base):
     """Модель отклика"""
 
     student_id: Mapped[int] = mapped_column(
-        ForeignKey("students.id", ondelete="DO NOTHING"),
+        ForeignKey("students.id", ondelete="NO ACTION"),
         nullable=False,
         comment="ID студента")
 
     teacher_id: Mapped[int] = mapped_column(
-        ForeignKey("teachers.id", ondelete="DO NOTHING"),
+        ForeignKey("teachers.id", ondelete="NO ACTION"),
         nullable=False,
         comment="ID репетитора")
 
     application_id: Mapped[int] = mapped_column(
-        ForeignKey("applications.id", ondelete="DO NOTHING"),
+        ForeignKey("applications.id", ondelete="NO ACTION"),
         nullable=False,
         comment="ID заявки")
 
