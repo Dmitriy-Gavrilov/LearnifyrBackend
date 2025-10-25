@@ -7,7 +7,7 @@
 from enum import Enum
 from datetime import datetime
 
-from sqlalchemy import String, DateTime
+from sqlalchemy import String, DateTime, Boolean, Integer
 from sqlalchemy import Enum as SQLEnum
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -29,7 +29,11 @@ class Token(Base):
         SQLEnum(TokenType, native_enum=False),
         nullable=False,
         comment="Тип токена")
+    user_id: Mapped[int] = mapped_column(  # не FK, т.к. может быть и студентом и репетитором
+        Integer, nullable=False, comment="ID пользователя")
     expires_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
         comment="Время истечения")
+    used: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, comment="Использован")

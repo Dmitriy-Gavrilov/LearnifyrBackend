@@ -21,10 +21,10 @@ class PersonCommon:
     """Общие поля студента и репетитора"""
 
     # Telegram
-    telegram_id: Mapped[int] = mapped_column(
-        Integer, nullable=False, comment="ID в Telegram")
-    telegram_username: Mapped[str] = mapped_column(
-        String(50), nullable=False, comment="Username в Telegram")
+    telegram_id: Mapped[int | None] = mapped_column(
+        Integer, nullable=True, unique=True, comment="ID в Telegram")
+    telegram_username: Mapped[str | None] = mapped_column(
+        String(50), nullable=True, unique=True, comment="Username в Telegram")
 
     # Общие
     surname: Mapped[str] = mapped_column(
@@ -33,10 +33,16 @@ class PersonCommon:
         String(50), nullable=False, comment="Имя")
     patronymic: Mapped[str | None] = mapped_column(
         String(50), nullable=True, comment="Отчество")
-    age: Mapped[int] = mapped_column(
-        Integer, nullable=False, comment="Возраст")
+    age: Mapped[int | None] = mapped_column(
+        Integer, nullable=True, comment="Возраст")
     bio: Mapped[str | None] = mapped_column(
         String(200), nullable=True, comment="Описание профиля")
+
+    # Авторизация
+    refresh_id: Mapped[str | None] = mapped_column(
+        String(255), nullable=True, comment="ID refresh токена")
+    ip: Mapped[str | None] = mapped_column(
+        String(255), nullable=True, comment="IP адрес")
 
     # Настройки профиля
     active: Mapped[bool] = mapped_column(
