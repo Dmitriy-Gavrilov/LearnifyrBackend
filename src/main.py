@@ -1,10 +1,15 @@
 """Основной мудль приложения"""
+import asyncio
 import logging
 import time
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, APIRouter, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
+
+from src.integrations.service import listen_bot_events
+
+from src.auth.router import router as auth_router
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -14,7 +19,15 @@ async def lifespan(_app: FastAPI):
     """Контекстный менеджер для управления жизненным циклом приложения."""
     logger.info("Запуск сервера...")
 
+    listen_bot = asyncio.create_task(listen_bot_events())
+
     yield
+
+    listen_bot.cancel()
+    try:
+        await listen_bot
+    except asyncio.CancelledError:
+        logger.info("Остановка прослушивания событий от Telegram-бота...")
 
     logger.info("Остановка сервера...")
 
@@ -49,6 +62,7 @@ def health():
 
 
 app.include_router(api_router)
+app.include_router(auth_router)
 
 app.add_middleware(
     CORSMiddleware,
