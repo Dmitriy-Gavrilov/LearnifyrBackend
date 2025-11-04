@@ -15,7 +15,7 @@ config = AuthXConfig(
     JWT_COOKIE_CSRF_PROTECT=False,
     JWT_ACCESS_TOKEN_EXPIRES=auth_settings.JWT_ACCESS_TOKEN_EXPIRES,
     JWT_REFRESH_TOKEN_EXPIRES=auth_settings.JWT_REFRESH_TOKEN_EXPIRES,
-    JWT_COOKIE_MAX_AGE=auth_settings.JWT_COOKIE_MAX_AGE
+    JWT_COOKIE_MAX_AGE=auth_settings.JWT_COOKIE_MAX_AGE,
 )
 
 security: AuthX = AuthX(config=config)

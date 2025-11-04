@@ -205,9 +205,19 @@ async def login_user(data: LoginRequest, session: AsyncSession) -> None:
         )
 
 
-async def login_verify_user(data: LoginVerifySchema, session: AsyncSession) -> int:
+async def login_verify_user(data: LoginVerifySchema, session: AsyncSession) -> tuple[int, str]:
     """Проверка кода подтверждения и вход в систему"""
-    return await verify_token(VerifySchema(token=data.token, token_type=TokenType.CONFIRMATION), session)
+    user_id = await verify_token(
+        VerifySchema(
+            token=data.token,
+            token_type=TokenType.CONFIRMATION
+        ),
+        session
+    )
+    user = await get_user_by_id(user_id, session)
+    if isinstance(user, Student):
+        return user_id, "student"
+    return user_id, "teacher"
 
 
 async def check_user_refresh(user_id: int, ip: str, refresh_id: str, session: AsyncSession) -> None:
