@@ -14,7 +14,13 @@ from src.auth.service import (
     update_refresh_id,
     update_ip
 )
-from src.auth.schemas import LoginRequest, LoginVerifySchema, RegisterResponse, RegisterSchema
+from src.auth.schemas import (
+    LoginRequest,
+    LoginResponse,
+    LoginVerifySchema,
+    RegisterResponse,
+    RegisterSchema
+)
 from src.auth.security import config, security
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
@@ -44,9 +50,9 @@ async def login_verify(
     request: Request,
     response: Response,
     session: AsyncSession = Depends(get_session)
-) -> None:
+) -> LoginResponse:
     """Проверка кода подтверждения и вход в систему"""
-    user_id = await login_verify_user(data, session)
+    user_id, role = await login_verify_user(data, session)
 
     # Создание токенов
     access_token = security.create_access_token(uid=str(user_id))
@@ -61,6 +67,8 @@ async def login_verify(
     # Установка токенов в cookies
     security.set_access_cookies(access_token, response)
     security.set_refresh_cookies(refresh_token, response)
+
+    return LoginResponse(role=role)
 
 
 @router.post("/logout", summary="Выход из системы")

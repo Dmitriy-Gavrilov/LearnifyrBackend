@@ -39,3 +39,9 @@ class LoginRequest(BaseModel):
     """Схема авторизации"""
 
     username: str = Field(..., description="Username в Telegram")
+
+
+class LoginResponse(BaseModel):
+    """Схема ответа на авторизацию"""
+
+    role: str = Field(..., description="Роль пользователя")

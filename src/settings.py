@@ -34,7 +34,7 @@ class AuthSettings(BaseSettings):
     @property
     def JWT_COOKIE_MAX_AGE(self) -> float:  # pylint: disable=invalid-name
         """Возвращает максимальное время жизни куки"""
-        return self.JWT_ACCESS_TOKEN_EXPIRES.total_seconds()
+        return self.JWT_REFRESH_TOKEN_EXPIRES.total_seconds()
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
@@ -63,6 +63,26 @@ class RedisSettings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 
+class MinioSettings(BaseSettings):
+    """Класс настроек MinIO"""
+
+    MINIO_HOST: str
+    MINIO_PORT: int
+    MINIO_ROOT_USER: str
+    MINIO_ROOT_PASSWORD: str
+    MINIO_PUBLIC_HOST: str
+
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
+    def get_minio_endpoint(self) -> str:
+        """Возвращает URL для подключения к MinIO"""
+        return f"{self.MINIO_HOST}:{self.MINIO_PORT}"
+
+    def get_minio_public_endpoint(self) -> str:
+        """Возвращает URL для подключения к MinIO"""
+        return f"{self.MINIO_PUBLIC_HOST}:{self.MINIO_PORT}"
+
+
 @lru_cache
 def get_db_settings() -> DatabaseSettings:
     """Возвращает настройки базы данных с ленивой инициализацией"""
@@ -78,12 +98,19 @@ def get_bot_settings() -> BotSettings:
     """Возвращает настройки бота с ленивой инициализацией"""
     return BotSettings()
 
+@lru_cache
 def get_redis_settings() -> RedisSettings:
     """Возвращает настройки Redis с ленивой инициализацией"""
     return RedisSettings()
+
+@lru_cache
+def get_minio_settings() -> MinioSettings:
+    """Возвращает настройки MinIO с ленивой инициализацией"""
+    return MinioSettings()
 
 
 db_settings = get_db_settings()
 auth_settings = get_auth_settings()
 bot_settings = get_bot_settings()
 redis_settings = get_redis_settings()
+minio_settings = get_minio_settings()

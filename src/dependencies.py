@@ -99,12 +99,12 @@ async def verify_token(request: Request, session: AsyncSession) -> Student | Tea
         ) from e
 
 
-def require_role(required_role: UserRole) -> Callable[[Request, AsyncSession], Awaitable[None]]:
+def require_role(required_role: UserRole) -> Callable[[Request, AsyncSession], Awaitable[int]]:
     """Создает зависимость для проверки прав"""
     async def dependency(
             request: Request,
             session: AsyncSession = Depends(get_session)
-    ) -> None:
+    ) -> int:
         """Проверка прав пользователя"""
         current_user = await verify_token(request, session)
         if required_role == UserRole.STUDENT and not isinstance(current_user, Student):
@@ -117,5 +117,6 @@ def require_role(required_role: UserRole) -> Callable[[Request, AsyncSession], A
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Требуется роль репетитора"
             )
+        return current_user.id
 
     return dependency
