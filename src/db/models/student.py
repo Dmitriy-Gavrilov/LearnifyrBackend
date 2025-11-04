@@ -1,6 +1,7 @@
 """Описание таблицы студента в БД"""
 
-import random
+import secrets
+
 from sqlalchemy import Boolean, BigInteger
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -13,7 +14,7 @@ class Student(PersonCommon, Base):
     id: Mapped[int] = mapped_column(
         BigInteger,
         primary_key=True,
-        default=lambda: random.randint(10_000_000, 1_000_000_000),
+        default=lambda: secrets.randbelow(1_000_000_000) + 10_000_000,
         comment="ID студента"
     )
 
