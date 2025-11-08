@@ -3,14 +3,16 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.schemas import UpdateActiveRequest
 from src.dependencies import require_role, UserRole, get_session
 from src.student.service import (
-    activate_profile,
-    deactivate_profile,
+    delete_profile,
+    update_active_profile,
     get_profile,
+    update_notification,
     update_profile
 )
-from src.student.schemas import StudentProfile, UpdateStudentRequest
+from src.student.schemas import StudentProfile, UpdateNotificationRequest, UpdateStudentRequest
 
 router = APIRouter(prefix="/students", tags=["Students"])
 
@@ -34,32 +36,44 @@ async def update_student_profile(
 ) -> None:
     """
     Обновление основной информации в профиле студента:
-        - Фамилия
-        - Имя
-        - Отчество
-        - Возраст
-        - Описание профиля
+    - Фамилия
+    - Имя
+    - Отчество
+    - Возраст
+    - Описание профиля
     """
     await update_profile(user_id, data, session)
 
 
-@router.patch("/deactivate", summary="Деактивация профиля")
-async def deactivate_student_profile(
+@router.patch("/active", summary="Изменение активности профиля")
+async def update_student_active(
+    data: UpdateActiveRequest,
     user_id: int = Depends(require_role(UserRole.STUDENT)),
     session: AsyncSession = Depends(get_session)
 ) -> None:
     """
-    Деактивация профиля студента
+    Активация и деактивация профиля студента
     """
-    await deactivate_profile(user_id, session)
+    await update_active_profile(user_id, data, session)
 
 
-@router.patch("/activate", summary="Активация профиля")
-async def activate_student_profile(
+@router.patch("/notification", summary="Обновление уведомлений")
+async def update_student_notification(
+    data: UpdateNotificationRequest,
     user_id: int = Depends(require_role(UserRole.STUDENT)),
     session: AsyncSession = Depends(get_session)
 ) -> None:
     """
-    Активация профиля студента
+    Обновление настроек уведомлений студента
     """
-    await activate_profile(user_id, session)
+    await update_notification(user_id, data, session)
+
+@router.delete("/", summary="Удаление профиля")
+async def delete_student_profile(
+    user_id: int = Depends(require_role(UserRole.STUDENT)),
+    session: AsyncSession = Depends(get_session)
+) -> None:
+    """
+    Удаление профиля студента
+    """
+    await delete_profile(user_id, session)

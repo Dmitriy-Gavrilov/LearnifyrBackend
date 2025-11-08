@@ -43,3 +43,19 @@ class UpdateTeacherRequest(BaseUserUpdate):
 class UpdateSubjectsRequest(BaseModel):
     """Схема обновления предметов"""
     subjects: list[str] = Field(..., description="Список предметов")
+
+
+class UpdateNotificationRequest(BaseModel):
+    """Схема обновления уведомлений"""
+    review_notification: bool | None = Field(
+        None,
+        description="Уведомления об отзывах"
+    )
+    response_notification: bool | None = Field(
+        None,
+        description="Уведомления о принятии откликов"
+    )
+    archive_lessons_notification: bool | None = Field(
+        None,
+        description="Уведомления о завершении уроков"
+    )

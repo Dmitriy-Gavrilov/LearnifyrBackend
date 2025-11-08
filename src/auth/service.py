@@ -93,20 +93,32 @@ async def verify_token(data: VerifySchema, session: AsyncSession) -> int:
     if not token:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Неверный токен"
+            detail=(
+                "Неверный токен"
+                if data.token_type == TokenType.REGISTRATION
+                else "Неверный код подтверждения"
+            ),
         )
     # 4. Проверяем, не использован ли токен
     if token.used:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Токен уже использован"
+            detail=(
+                "Токен уже использован"
+                if data.token_type == TokenType.REGISTRATION
+                else "Код подтверждения уже использован"
+            ),
         )
 
     # 5. Проверяем срок действия
     if token.expires_at < datetime.now(timezone.utc):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Токен истёк"
+            detail=(
+                "Токен истёк"
+                if data.token_type == TokenType.REGISTRATION
+                else "Код подтверждения истёк"
+            ),
         )
 
     # 6. Помечаем токен как использованный

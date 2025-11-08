@@ -19,8 +19,8 @@ teacher_subjects = Table(
 hidden_applications = Table(
     "hidden_applications",
     Base.metadata,
-    Column("student_id",
-            ForeignKey("students.id", ondelete="CASCADE"),
+    Column("teacher_id",
+            ForeignKey("teachers.id", ondelete="CASCADE"),
             primary_key=True),
     Column("application_id",
             ForeignKey("applications.id", ondelete="CASCADE"),

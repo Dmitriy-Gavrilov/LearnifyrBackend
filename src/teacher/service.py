@@ -1,15 +1,25 @@
 """Сервисные функции для работы с репетиторами"""
 
 from fastapi import HTTPException, UploadFile, status
-from sqlalchemy import delete, insert, join, select
+from sqlalchemy import delete, insert, join, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.db.models.matches import Match, MatchStatus
+from src.db.models.token import Token
 from src.db.models.review import Review
 from src.db.models.teacher import Teacher
 from src.db.models.subject import Subject
-from src.db.models.association_tables import teacher_subjects
-from src.teacher.schemas import ReviewSchema, TeacherProfile, UpdateSubjectsRequest, UpdateTeacherRequest
+from src.db.models.association_tables import hidden_applications, hidden_teachers, teacher_subjects
+
 from src.integrations.minio import delete_file, get_presigned_url, upload_file
+from src.schemas import UpdateActiveRequest
+from src.teacher.schemas import (
+    ReviewSchema,
+    TeacherProfile,
+    UpdateNotificationRequest,
+    UpdateSubjectsRequest,
+    UpdateTeacherRequest
+)
 
 
 async def get_profile(user_id: int, session: AsyncSession) -> TeacherProfile:
@@ -124,20 +134,7 @@ async def update_profile(user_id: int, profile: UpdateTeacherRequest, session: A
     await session.commit()
 
 
-async def deactivate_profile(user_id: int, session: AsyncSession) -> None:
-    """Деактивация профиля репетитора"""
-    result = await session.execute(select(Teacher).where(Teacher.id == user_id))
-    teacher = result.scalar_one_or_none()
-    if teacher is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Пользователь не найден"
-        )
-    teacher.active = False
-    await session.commit()
-
-
-async def activate_profile(user_id: int, session: AsyncSession) -> None:
+async def update_active_profile(user_id: int, data: UpdateActiveRequest, session: AsyncSession) -> None:
     """Активация профиля репетитора"""
     result = await session.execute(select(Teacher).where(Teacher.id == user_id))
     teacher = result.scalar_one_or_none()
@@ -146,7 +143,7 @@ async def activate_profile(user_id: int, session: AsyncSession) -> None:
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Пользователь не найден"
         )
-    teacher.active = True
+    teacher.active = data.active
     await session.commit()
 
 
@@ -172,6 +169,66 @@ async def update_subjects(user_id: int, data: UpdateSubjectsRequest, session: As
     await session.execute(
         insert(teacher_subjects),
         [{"teacher_id": user_id, "subject_id": sid} for sid, _ in found_subjects],
+    )
+
+    await session.commit()
+
+
+async def update_notification(
+    user_id: int,
+    data: UpdateNotificationRequest,
+    session: AsyncSession
+) -> None:
+    """Обновление уведомлений репетитора"""
+    result = await session.execute(select(Teacher).where(Teacher.id == user_id))
+    teacher = result.scalar_one_or_none()
+    if teacher is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Пользователь не найден"
+        )
+    if data.review_notification is not None:
+        teacher.review_notification = data.review_notification
+    if data.response_notification is not None:
+        teacher.response_notification = data.response_notification
+    if data.archive_lessons_notification is not None:
+        teacher.archive_lessons_notification = data.archive_lessons_notification
+    await session.commit()
+
+
+async def delete_profile(user_id: int, session: AsyncSession) -> None:
+    """Удаление профиля репетитора"""
+    result = await session.execute(select(Teacher).where(Teacher.id == user_id))
+    teacher = result.scalar_one_or_none()
+    if teacher is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Пользователь не найден"
+        )
+
+    # Очистка основной информации
+    teacher.is_deleted = True
+    teacher.telegram_id = None
+    teacher.telegram_username = None
+
+    # Удаление аватара
+    await delete_avatar(user_id, session)
+
+    # Очистка связей
+    await session.execute(
+        delete(teacher_subjects).where(teacher_subjects.c.teacher_id == user_id)
+    )
+    await session.execute(
+        delete(hidden_applications).where(hidden_applications.c.teacher_id == user_id)
+    )
+    await session.execute(
+        delete(hidden_teachers).where(hidden_teachers.c.teacher_id == user_id)
+    )
+    await session.execute(
+        delete(Token).where(Token.user_id == user_id)
+    )
+    await session.execute(
+        update(Match).where(Match.teacher_id == user_id).values(status=MatchStatus.ARCHIVED)
     )
 
     await session.commit()
