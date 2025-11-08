@@ -27,3 +27,8 @@ class BaseUserUpdate(BaseModel):
     patronymic: str | None = Field(None, min_length=1, max_length=50, description="Отчество")
     age: int | None = Field(None, gt=0, lt=150, description="Возраст")
     bio: str | None = Field(None, min_length=1, max_length=200, description="Описание профиля")
+
+
+class UpdateActiveRequest(BaseModel):
+    """Схема обновления активности"""
+    active: bool = Field(..., description="Активность")
