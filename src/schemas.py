@@ -1,6 +1,17 @@
 """Общие схемы"""
 
+from datetime import datetime
 from pydantic import BaseModel, Field
+
+
+class BaseUserSchema(BaseModel):
+    """Базовые поля пользователя"""
+    surname: str = Field(..., description="Фамилия")
+    name: str = Field(..., description="Имя")
+    patronymic: str | None = Field(None, description="Отчество")
+    age: int | None = Field(None, description="Возраст")
+    bio: str | None = Field(None, description="Описание профиля")
+
 
 class BaseUserResponse(BaseModel):
     """Базовая схема пользователя"""
@@ -32,3 +43,10 @@ class BaseUserUpdate(BaseModel):
 class UpdateActiveRequest(BaseModel):
     """Схема обновления активности"""
     active: bool = Field(..., description="Активность")
+
+
+class ReviewSchema(BaseModel):
+    """Схема отзыва"""
+    rating: int = Field(..., description="Оценка")
+    text: str = Field(..., description="Текст отзыва")
+    created_at: datetime = Field(..., description="Дата создания")

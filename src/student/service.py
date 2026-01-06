@@ -5,18 +5,29 @@ from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db.models.association_tables import hidden_teachers
+from src.db.models.review import Review
 from src.db.models.student import Student
 from src.db.models.matches import Match, MatchStatus
 from src.db.models.token import Token
 
-from src.schemas import UpdateActiveRequest
-from src.student.schemas import StudentProfile, UpdateNotificationRequest, UpdateStudentRequest
+from src.matches.schemas import MatchResponse
+from src.matches.service import get_user_matches
+from src.schemas import ReviewSchema, UpdateActiveRequest
+from src.student.schemas import (
+    StudentProfile,
+    StudentProfileById,
+    UpdateNotificationRequest,
+    UpdateStudentRequest
+)
 
-async def get_profile(user_id: int, session: AsyncSession) -> StudentProfile:
-    """Получение профиля студента"""
 
+async def get_student_related(
+    student_id: int,
+    session: AsyncSession
+) -> tuple[Student, list[Review]]:
+    """Получение связанных объектов студента"""
     # Объект студента
-    result = await session.execute(select(Student).where(Student.id == user_id))
+    result = await session.execute(select(Student).where(Student.id == student_id))
     student = result.scalar_one_or_none()
     if student is None or student.telegram_username is None:
         raise HTTPException(
@@ -24,6 +35,21 @@ async def get_profile(user_id: int, session: AsyncSession) -> StudentProfile:
             detail="Пользователь не найден"
         )
 
+    # Отзывы студента
+    reviews = list(
+        (await session.execute(
+            select(Review)
+                .where(Review.student_id == student_id, Review.is_published.is_(True))
+                .order_by(Review.created_at.desc())
+            )
+        ).scalars().all()
+    )
+
+    return student, reviews
+
+async def get_profile(user_id: int, session: AsyncSession) -> StudentProfile:
+    """Получение профиля студента"""
+    student, reviews = await get_student_related(user_id, session)
     return StudentProfile(
         telegram_username=student.telegram_username,
         surname=student.surname,
@@ -34,8 +60,38 @@ async def get_profile(user_id: int, session: AsyncSession) -> StudentProfile:
         active=student.active,
         request_notification=student.request_notification,
         review_published_notification=student.review_published_notification,
-        archive_lessons_notification=student.archive_lessons_notification
+        archive_lessons_notification=student.archive_lessons_notification,
+        reviews=[ReviewSchema(
+            rating=review.rating, text=review.text, created_at=review.created_at)
+            for review in reviews]
     )
+
+async def get_profile_by_id(
+    student_id: int,
+    session: AsyncSession
+) -> StudentProfileById:
+    """ Получение профиля студента от лица репетитора"""
+    student, reviews = await get_student_related(student_id, session)
+    return StudentProfileById(
+        surname=student.surname,
+        name=student.name,
+        patronymic=student.patronymic,
+        age=student.age,
+        bio=student.bio,
+        reviews=[ReviewSchema(
+            rating=review.rating, text=review.text, created_at=review.created_at)
+            for review in reviews]
+    )
+
+
+async def get_student_matches(
+    user_id: int,
+    session: AsyncSession,
+    archived: bool = False,
+    rejected: bool = False
+) -> list[MatchResponse]:
+    """Получение списка откликов студента"""
+    return await get_user_matches(user_id, "student", session, archived, rejected)
 
 
 async def update_profile(user_id: int, profile: UpdateStudentRequest, session: AsyncSession) -> None:

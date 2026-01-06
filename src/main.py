@@ -13,6 +13,8 @@ from src.auth.router import router as auth_router
 from src.teacher.router import router as teacher_router
 from src.student.router import router as student_router
 from src.subjects.router import router as subjects_router
+from src.applications.router import router as applications_router
+from src.matches.router import router as matches_router
 
 # Логирование
 logging.basicConfig(level=logging.INFO)
@@ -35,6 +37,14 @@ tags_metadata = [
     {
         "name": "Students",
         "description": "Эндпоинты для работы со студентами. Доступны пользователям с ролью **STUDENT**",
+    },
+    {
+        "name": "Applications",
+        "description": "Эндпоинты для работы с заявками",
+    },
+    {
+        "name": "Matches",
+        "description": "Эндпоинты для работы с откликами",
     },
     {
         "name": "Monitoring",
@@ -96,6 +106,8 @@ api_router.include_router(auth_router)
 api_router.include_router(teacher_router)
 api_router.include_router(student_router)
 api_router.include_router(subjects_router)
+api_router.include_router(applications_router)
+api_router.include_router(matches_router)
 
 app.include_router(api_router)
 

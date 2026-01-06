@@ -2,7 +2,7 @@
 
 from pydantic import BaseModel, Field
 
-from src.schemas import BaseUserResponse, BaseUserUpdate
+from src.schemas import BaseUserResponse, BaseUserSchema, BaseUserUpdate, ReviewSchema
 
 
 class StudentProfile(BaseUserResponse):
@@ -12,6 +12,13 @@ class StudentProfile(BaseUserResponse):
     request_notification: bool = Field(..., description="Уведомления об откликах")
     review_published_notification: bool = Field(..., description="Уведомления об опубликованных отзывах")
     archive_lessons_notification: bool = Field(..., description="Уведомления о завершении уроков")
+
+    reviews: list[ReviewSchema] = Field(..., description="Список оставленных отзывов")
+
+
+class StudentProfileById(BaseUserSchema):
+    """Схема профиля студента от лица репетитора"""
+    reviews: list[ReviewSchema] = Field(..., description="Список оставленных отзывов")
 
 
 class UpdateStudentRequest(BaseUserUpdate):

@@ -1,11 +1,14 @@
 """Роутер для работы с репетиторами"""
 
-from fastapi import APIRouter, Depends, UploadFile
+from fastapi import APIRouter, Depends, Query, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.dependencies import require_role, UserRole, get_session
+from src.matches.schemas import MatchResponse
 from src.schemas import UpdateActiveRequest
 from src.teacher.schemas import (
+    TeacherByIdProfile,
+    TeacherInfo,
     TeacherProfile,
     UpdateNotificationRequest,
     UpdateSubjectsRequest,
@@ -13,7 +16,10 @@ from src.teacher.schemas import (
 )
 from src.teacher.service import (
     delete_profile,
+    get_all_teachers,
     get_profile,
+    get_profile_by_id,
+    get_teacher_matches,
     update_active_profile,
     update_avatar,
     delete_avatar,
@@ -23,6 +29,15 @@ from src.teacher.service import (
 )
 
 router = APIRouter(prefix="/teachers", tags=["Teachers"])
+
+
+@router.get("")
+async def get_teachers(
+    _user_id: int = Depends(require_role(UserRole.STUDENT)),
+    session: AsyncSession = Depends(get_session)
+) -> list[TeacherInfo]:
+    """Полученеи списка преподавателей"""
+    return await get_all_teachers(session)
 
 
 @router.get("/profile", summary="Получение профиля репетитора")
@@ -38,6 +53,17 @@ async def get_teacher_profile(
     - Предметы
     """
     return await get_profile(user_id, session)
+
+
+@router.get("/matches", summary="Получение списка откликов")
+async def get_matches(
+    archived: bool = Query(False, description="Завершенные"),
+    rejected: bool = Query(False, description="Отклоненные"),
+    user_id: int = Depends(require_role(UserRole.TEACHER)),
+    session: AsyncSession = Depends(get_session)
+) -> list[MatchResponse]:
+    """Получение списка откликов на заявки"""
+    return await get_teacher_matches(user_id, session, archived, rejected)
 
 
 @router.post("/avatar", summary="Обновление аватара")
@@ -128,3 +154,13 @@ async def delete_teacher_profile(
     Удаление профиля репетитора
     """
     await delete_profile(user_id, session)
+
+
+@router.get("/{teacher_id}", summary="Получение профиля репетитора от лица ученика")
+async def get_teacher_by_id(
+    teacher_id: int,
+    _user_id: int = Depends(require_role(UserRole.STUDENT)),
+    session: AsyncSession = Depends(get_session)
+) -> TeacherByIdProfile:
+    """Получение профиля репетитора от лица ученика"""
+    return await get_profile_by_id(teacher_id, session)

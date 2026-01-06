@@ -9,6 +9,7 @@ class EventType(str, Enum):
     REGISTRATION_START = "registration_start"
     REGISTRATION_FINISH = "registration_finish"
     AUTH = "auth"
+    NOTIFICATION = "notification"
 
 
 class BaseEvent(BaseModel):
@@ -38,3 +39,8 @@ class AuthEvent(BaseEvent):
     """Сообщение боту при авторизации"""
     user_id: int = Field(..., description="ID пользователя в Telegram")
     code: str = Field(..., description="Код подтверждения")
+
+class NotificationEvent(BaseEvent):
+    """Сообщение боту при авторизации"""
+    user_id: int = Field(..., description="ID пользователя в Telegram")
+    message: str = Field(..., description="Сообщение пользователю")

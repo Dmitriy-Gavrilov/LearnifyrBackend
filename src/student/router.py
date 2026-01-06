@@ -1,18 +1,26 @@
 """Роутер для работы со студентами"""
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.matches.schemas import MatchResponse
 from src.schemas import UpdateActiveRequest
 from src.dependencies import require_role, UserRole, get_session
 from src.student.service import (
     delete_profile,
+    get_profile_by_id,
+    get_student_matches,
     update_active_profile,
     get_profile,
     update_notification,
     update_profile
 )
-from src.student.schemas import StudentProfile, UpdateNotificationRequest, UpdateStudentRequest
+from src.student.schemas import (
+    StudentProfile,
+    StudentProfileById,
+    UpdateNotificationRequest,
+    UpdateStudentRequest
+)
 
 router = APIRouter(prefix="/students", tags=["Students"])
 
@@ -26,6 +34,29 @@ async def get_student_profile(
     Получение профиля студента с основной информацией
     """
     return await get_profile(user_id, session)
+
+
+@router.get("/{student_id}", summary="Получение профиля студента от лица репетитора")
+async def get_student_by_id(
+    student_id: int,
+    _user_id: int = Depends(require_role(UserRole.TEACHER)),
+    session: AsyncSession = Depends(get_session)
+) -> StudentProfileById:
+    """
+    Получение профиля студента от лица репетитора
+    """
+    return await get_profile_by_id(student_id, session)
+
+
+@router.get("/matches", summary="Получение списка откликов")
+async def get_matches(
+    archived: bool = Query(False, description="Завершенные"),
+    rejected: bool = Query(False, description="Отклоненные"),
+    user_id: int = Depends(require_role(UserRole.STUDENT)),
+    session: AsyncSession = Depends(get_session)
+) -> list[MatchResponse]:
+    """Получение списка откликов на заявки"""
+    return await get_student_matches(user_id, session, archived, rejected)
 
 
 @router.patch("/profile", summary="Обновление профиля")

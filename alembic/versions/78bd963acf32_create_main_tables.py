@@ -55,6 +55,7 @@ def upgrade() -> None:
     sa.Column('rating', sa.Numeric(precision=2, scale=1), nullable=False, comment='Рейтинг'),
     sa.Column('active', sa.Boolean(), nullable=False, comment='Активность'),
     sa.Column('is_deleted', sa.Boolean(), nullable=False, comment='Удален или нет'),
+    sa.Column('application_notification', sa.Boolean(), nullable=False, comment='Уведомления о новых заявках'),
     sa.Column('review_notification', sa.Boolean(), nullable=False, comment='Уведомления об отзывах'),
     sa.Column('response_notification', sa.Boolean(), nullable=False, comment='Уведомления о принятии откликов'),
     sa.Column('archive_lessons_notification', sa.Boolean(), nullable=False, comment='Уведомления о завершении уроков'),
@@ -118,11 +119,13 @@ def upgrade() -> None:
     sa.Column('student_id', sa.Integer(), nullable=False, comment='ID студента'),
     sa.Column('teacher_id', sa.Integer(), nullable=False, comment='ID репетитора'),
     sa.Column('application_id', sa.Integer(), nullable=False, comment='ID заявки'),
-    sa.Column('status', sa.Enum('REQUEST', 'ACTIVE', 'ARCHIVED', name='matchstatus', native_enum=False), nullable=False, comment='Статус'),
+    sa.Column('status', sa.Enum('REQUEST', 'ACTIVE', 'ARCHIVED', 'REJECTED', name='matchstatus', native_enum=False), nullable=False, comment='Статус'),
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
     sa.ForeignKeyConstraint(['application_id'], ['applications.id'], ondelete='NO ACTION'),
     sa.ForeignKeyConstraint(['student_id'], ['students.id'], ondelete='NO ACTION'),
     sa.ForeignKeyConstraint(['teacher_id'], ['teachers.id'], ondelete='NO ACTION'),
+    sa.Column('created_at', sa.DateTime(timezone=True), nullable=False, comment='Дата создания'),
+    sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False, comment='Дата обновления'),
     sa.PrimaryKeyConstraint('id')
     )
     # ### end Alembic commands ###

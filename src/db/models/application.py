@@ -45,7 +45,7 @@ class Application(Base):
     lessons_count: Mapped[LessonsCount] = mapped_column(
         SQLEnum(LessonsCount, native_enum=False),
         nullable=False,
-        comment="Преподполагаемое количество уроков")
+        comment="Предполагаемое количество уроков")
 
     description: Mapped[str] = mapped_column(
         String(200), nullable=False, comment="Описание")

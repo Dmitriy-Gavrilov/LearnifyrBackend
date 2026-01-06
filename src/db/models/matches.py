@@ -1,7 +1,8 @@
 """Описание таблицы откликов и сотрудничеств в БД"""
 
+from datetime import datetime
 from enum import Enum
-from sqlalchemy import ForeignKey
+from sqlalchemy import DateTime, ForeignKey
 from sqlalchemy import Enum as SQLEnum
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -14,6 +15,7 @@ class MatchStatus(str, Enum):
     REQUEST = "request"  # Отклик
     ACTIVE = "active"    # Идут занятия
     ARCHIVED = "archived"  # Архив (завершено)
+    REJECTED = "rejected"  # Отклонено
 
 
 class Match(Base):
@@ -38,3 +40,9 @@ class Match(Base):
         SQLEnum(MatchStatus, native_enum=False),
         nullable=False,
         comment="Статус")
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, comment="Дата создания")
+
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, comment="Дата обновления")
