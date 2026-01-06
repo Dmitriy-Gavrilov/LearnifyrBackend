@@ -17,6 +17,8 @@ class Teacher(PersonCommon, Base):
         Numeric(2, 1), nullable=False, comment="Рейтинг")
 
     # Уведомления
+    application_notification: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, comment="Уведомления о новых заявках")
     review_notification: Mapped[bool] = mapped_column(
         Boolean, nullable=False, comment="Уведомления об отзывах")
     response_notification: Mapped[bool] = mapped_column(

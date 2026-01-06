@@ -15,6 +15,7 @@ from src.integrations.schemas import (
     EventType,
     BotRegistrationEvent,
     AuthEvent,
+    NotificationEvent,
     RegistrationResponseEvent,
 )
 from src.integrations.redis import RedisService, read_stream_messages
@@ -61,6 +62,9 @@ async def listen_backend_events():
                 elif event_type == EventType.AUTH:
                     event = AuthEvent(**payload)
                     await handle_auth_event(event)
+                elif event_type == EventType.NOTIFICATION:
+                    event = NotificationEvent(**payload)
+                    await handle_notification_event(event)
 
             await asyncio.sleep(2)
         except Exception as e:  # pylint: disable=broad-exception-caught
@@ -71,6 +75,11 @@ async def handle_auth_event(event: AuthEvent):
     """Отправка пользователю 6-значного кода"""
     text = f"Ваш код подтверждения:\n<pre>{event.code}</pre>"
     await bot.send_message(chat_id=event.user_id, text=text)
+
+
+async def handle_notification_event(event: NotificationEvent):
+    """Отправка уведомления пользователю"""
+    await bot.send_message(chat_id=event.user_id, text=event.message)
 
 
 @dp.message(Command("start"))

@@ -154,6 +154,7 @@ async def register_user(
             active=True,
             is_deleted=False,
             rating=0,
+            application_notification=True,
             review_notification=True,
             response_notification=True,
             archive_lessons_notification=True)

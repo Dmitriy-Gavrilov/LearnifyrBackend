@@ -19,6 +19,7 @@ class UserRole(str, Enum):
     """Роль пользователя"""
     STUDENT = "student"
     TEACHER = "teacher"
+    AUTHORIZED = "authorized"
 
 
 async def get_session() -> AsyncGenerator[AsyncSession, None]:
@@ -117,6 +118,8 @@ def require_role(required_role: UserRole) -> Callable[[Request, AsyncSession], A
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Требуется роль репетитора"
             )
+        if required_role == UserRole.AUTHORIZED:
+            pass
         return current_user.id
 
     return dependency
