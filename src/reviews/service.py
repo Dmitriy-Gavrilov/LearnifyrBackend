@@ -67,7 +67,11 @@ async def create_user_review(
 
     if teacher.review_notification:
         # Отправка уведомления репетитору для подтверждения публикации
-        await send_review_notification(teacher.telegram_id, f"Новый отзыв:\n{data.text}", review.id)  # type: ignore
+        await send_review_notification(
+            teacher.telegram_id,  # type: ignore
+            f"Новый отзыв:\n{data.text}",
+            review.id
+        )
     else:
         # Публикация отзыва без подтверждения
         review.is_published = True
