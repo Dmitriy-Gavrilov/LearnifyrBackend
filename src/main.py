@@ -4,7 +4,10 @@ import logging
 import time
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, APIRouter, Request, Response
+import stackprinter  # type: ignore
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
+from fastapi import FastAPI, APIRouter, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 
 from src.integrations.service import listen_bot_events
@@ -15,6 +18,7 @@ from src.student.router import router as student_router
 from src.subjects.router import router as subjects_router
 from src.applications.router import router as applications_router
 from src.matches.router import router as matches_router
+from src.reviews.router import router as reviews_router
 
 # Логирование
 logging.basicConfig(level=logging.INFO)
@@ -45,6 +49,10 @@ tags_metadata = [
     {
         "name": "Matches",
         "description": "Эндпоинты для работы с откликами",
+    },
+    {
+        "name": "Reviews",
+        "description": "Эндпоинты для работы с отзывами",
     },
     {
         "name": "Monitoring",
@@ -96,6 +104,16 @@ async def log_process_time(request: Request, call_next):
     return response
 
 
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError): # pylint: disable=unused-argument
+    """Перехват ошибок валидации"""
+    logger.error(stackprinter.format(exc))
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content={"detail": exc.errors()},
+    )
+
+
 @api_router.get("/health", tags=["Monitoring"])
 def health():
     """Проверка работоспособности сервера"""
@@ -108,6 +126,7 @@ api_router.include_router(student_router)
 api_router.include_router(subjects_router)
 api_router.include_router(applications_router)
 api_router.include_router(matches_router)
+api_router.include_router(reviews_router)
 
 app.include_router(api_router)
 

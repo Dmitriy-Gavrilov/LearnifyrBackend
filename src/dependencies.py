@@ -107,6 +107,8 @@ def require_role(required_role: UserRole) -> Callable[[Request, AsyncSession], A
             session: AsyncSession = Depends(get_session)
     ) -> int:
         """Проверка прав пользователя"""
+        # if required_role == UserRole.STUDENT:
+        #     return 660828911
         current_user = await verify_token(request, session)
         if required_role == UserRole.STUDENT and not isinstance(current_user, Student):
             raise HTTPException(

@@ -10,6 +10,8 @@ class EventType(str, Enum):
     REGISTRATION_FINISH = "registration_finish"
     AUTH = "auth"
     NOTIFICATION = "notification"
+    REVIEW = "review"
+    REVIEW_RESPONSE = "review_response"
 
 
 class BaseEvent(BaseModel):
@@ -23,10 +25,18 @@ class BotRegistrationEvent(BaseEvent):
     username: str = Field(..., description="Username пользователя в Telegram")
     token: str = Field(..., description="Токен регистрации")
 
+
 class BotCommonStart(BaseEvent):
     """/start без передачи токена"""
     user_id: int = Field(..., description="ID пользователя в Telegram")
     username: str = Field(..., description="Username пользователя в Telegram")
+
+
+class BotReviewResponse(BaseEvent):
+    """Сообщение от бота при ответе на отзыв"""
+    user_id: int = Field(..., description="ID пользователя в Telegram")
+    review_id: int = Field(..., description="ID отзыва")
+    action: str = Field(..., description="Действие: publish или reject")
 
 
 class RegistrationResponseEvent(BaseEvent):
@@ -40,7 +50,15 @@ class AuthEvent(BaseEvent):
     user_id: int = Field(..., description="ID пользователя в Telegram")
     code: str = Field(..., description="Код подтверждения")
 
+
 class NotificationEvent(BaseEvent):
-    """Сообщение боту при авторизации"""
+    """Сообщение пользователю (уведомление)"""
     user_id: int = Field(..., description="ID пользователя в Telegram")
     message: str = Field(..., description="Сообщение пользователю")
+
+
+class ReviewEvent(BaseEvent):
+    """Сообщение пользователю о новом отзыве"""
+    user_id: int = Field(..., description="ID пользователя в Telegram")
+    message: str = Field(..., description="Сообщение пользователю")
+    review_id: int = Field(..., description="ID отзыва")

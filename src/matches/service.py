@@ -3,16 +3,18 @@
 from datetime import datetime
 
 from fastapi import HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import exists, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.db.models.application import Application
 from src.db.models.matches import Match, MatchStatus
+from src.db.models.review import Review
 from src.db.models.student import Student
 from src.db.models.teacher import Teacher
 from src.matches.schemas import MatchResponse
 
 
-async def get_user_matches(
+async def get_user_matches(  # pylint: disable=too-many-locals
     user_id: int,
     role: str,
     session: AsyncSession,
@@ -41,10 +43,11 @@ async def get_user_matches(
             Teacher.surname.label("teacher_surname"),
             Teacher.patronymic.label("teacher_patronymic"),
         )
+        .join(Application, Application.id == Match.application_id)
         .join(Student, Student.id == Match.student_id)
         .join(Teacher, Teacher.id == Match.teacher_id)
         .where(Match.status.in_(statuses))
-        .order_by(Match.created_at.desc())
+        .order_by(Match.updated_at.desc())
     )
 
     if role == "student":
@@ -54,9 +57,30 @@ async def get_user_matches(
 
     rows = (await session.execute(query)).all()
 
-    return [
-        MatchResponse(
+    matches = []
+    for (
+            match,
+            student_name,
+            student_surname,
+            teacher_name,
+            teacher_surname,
+            teacher_patronymic,
+        ) in rows:
+        # Может ли студент оставить отзыв
+        can_review = not (
+            await session.scalar(
+                select(
+                    exists().where(
+                        Review.student_id == user_id,
+                        Review.teacher_id == match.teacher_id,
+                    )
+                )
+            )
+        )
+
+        matches.append(MatchResponse(
             id=match.id,
+            application_id=match.application_id,
             student_id=match.student_id,
             student_name=student_name,
             student_surname=student_surname,
@@ -64,20 +88,12 @@ async def get_user_matches(
             teacher_name=teacher_name,
             teacher_surname=teacher_surname,
             teacher_patronymic=teacher_patronymic,
-            subject=match.subject,
             status=match.status,
             created_at=match.created_at,
             updated_at=match.updated_at,
-        )
-        for (
-            match,
-            student_name,
-            student_surname,
-            teacher_name,
-            teacher_surname,
-            teacher_patronymic,
-        ) in rows
-    ]
+            can_review=can_review,
+        ))
+    return matches
 
 
 async def complete_user_match(

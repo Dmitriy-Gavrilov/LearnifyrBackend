@@ -1,5 +1,6 @@
 """Схемы для работы со студентами"""
 
+from typing import Optional
 from pydantic import BaseModel, Field
 
 from src.schemas import BaseUserResponse, BaseUserSchema, BaseUserUpdate, ReviewSchema
@@ -18,6 +19,7 @@ class StudentProfile(BaseUserResponse):
 
 class StudentProfileById(BaseUserSchema):
     """Схема профиля студента от лица репетитора"""
+    telegram_username: Optional[str] = Field(None, description="Имя пользователя в Telegram")
     reviews: list[ReviewSchema] = Field(..., description="Список оставленных отзывов")
 
 

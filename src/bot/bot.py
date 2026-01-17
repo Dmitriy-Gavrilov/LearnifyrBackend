@@ -5,18 +5,21 @@ import asyncio
 import json
 from typing import Union
 
-from aiogram import Bot, Dispatcher, types
+from aiogram import F, Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.filters import Command, CommandObject
+from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
 
 from src.integrations.schemas import (
     BotCommonStart,
+    BotReviewResponse,
     EventType,
     BotRegistrationEvent,
     AuthEvent,
     NotificationEvent,
     RegistrationResponseEvent,
+    ReviewEvent,
 )
 from src.integrations.redis import RedisService, read_stream_messages
 from src.settings import redis_settings, bot_settings
@@ -65,6 +68,9 @@ async def listen_backend_events():
                 elif event_type == EventType.NOTIFICATION:
                     event = NotificationEvent(**payload)
                     await handle_notification_event(event)
+                elif event_type == EventType.REVIEW:
+                    event = ReviewEvent(**payload)
+                    await handle_review_event(event)
 
             await asyncio.sleep(2)
         except Exception as e:  # pylint: disable=broad-exception-caught
@@ -82,11 +88,66 @@ async def handle_notification_event(event: NotificationEvent):
     await bot.send_message(chat_id=event.user_id, text=event.message)
 
 
+async def handle_review_event(event: ReviewEvent):
+    """Отправка уведомления пользователю о новом отзыве"""
+    await bot.send_message(
+        chat_id=event.user_id,
+        text=event.message,
+        reply_markup=InlineKeyboardMarkup(
+            inline_keyboard=[
+                [
+                    InlineKeyboardButton(
+                        text="✅ Опубликовать",
+                        callback_data=f"review_publish:{event.review_id}",
+                    ),
+                    InlineKeyboardButton(
+                        text="❌ Отклонить",
+                        callback_data=f"review_reject:{event.review_id}",
+                    ),
+                ]
+            ]
+        )
+    )
+
+
+@dp.callback_query(F.data.startswith("review_"))
+async def review_action_handler(callback: CallbackQuery):
+    """Обработка ответа на публикацию отзыва"""
+    action, review_id = callback.data.split(":")  # type: ignore[union-attr]
+    review_id = int(review_id)
+
+    if action == "review_publish":
+        event = BotReviewResponse(
+            event_type=EventType.REVIEW_RESPONSE,
+            review_id=review_id,
+            user_id=callback.from_user.id,
+            action="publish"
+        )
+        text = "✅ Отзыв опубликован"
+    else:  # action == "review_reject"
+        event = BotReviewResponse(
+            event_type=EventType.REVIEW_RESPONSE,
+            review_id=review_id,
+            user_id=callback.from_user.id,
+            action="reject"
+        )
+        text = "❌ Отзыв отклонён"
+
+    await send_to_backend(event.model_dump())
+
+    await callback.answer()
+    await bot.send_message(
+        chat_id=callback.from_user.id,
+        text=text
+    )
+
+
 @dp.message(Command("start"))
-async def cmd_start(message: types.Message, command: CommandObject):
+async def cmd_start(message: Message, command: CommandObject):
     """Пользователь зашел по ссылке с токеном"""
     token = command.args
 
+    logger.info("БОТ: Пользователь зашел по ссылке с токеном: %s", token)
     if message.from_user is None:  # для mypy, использоваться не будет
         return
 

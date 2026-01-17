@@ -1,7 +1,7 @@
 """Сервисные функции для работы со студентами"""
 
 from fastapi import HTTPException, status
-from sqlalchemy import delete, select, update
+from sqlalchemy import delete, exists, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db.models.association_tables import hidden_teachers
@@ -66,13 +66,30 @@ async def get_profile(user_id: int, session: AsyncSession) -> StudentProfile:
             for review in reviews]
     )
 
+
 async def get_profile_by_id(
+    user_id: int,
     student_id: int,
     session: AsyncSession
 ) -> StudentProfileById:
     """ Получение профиля студента от лица репетитора"""
     student, reviews = await get_student_related(student_id, session)
+    exists_match = (
+        await session.scalar(
+            select(
+                exists().where(
+                    Match.teacher_id == user_id,
+                    Match.student_id == student_id,
+                )
+            )
+        )
+    )
+    if exists_match:
+        tg = student.telegram_username
+    else:
+        tg = None
     return StudentProfileById(
+        telegram_username=tg,
         surname=student.surname,
         name=student.name,
         patronymic=student.patronymic,
