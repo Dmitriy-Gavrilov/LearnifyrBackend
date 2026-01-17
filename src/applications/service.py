@@ -6,7 +6,7 @@ from typing import Sequence
 
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import and_, insert, or_, select
+from sqlalchemy import and_, exists, insert, or_, select, update
 
 from src.applications.schemas import (
     ApplicationFilters,
@@ -15,6 +15,7 @@ from src.applications.schemas import (
     CreateApplicationResponse,
     DetailApplicationResponse,
     RequestApplicationResponse,
+    StudentApplicationFilters,
     UpdateApplicationRequest
 )
 from src.db.models.application import Application, ApplicationStatus
@@ -90,7 +91,11 @@ async def update_user_application(
 ) -> None:
     """Обновление заявки"""
     application = (await session.execute(
-        select(Application).where(Application.id == application_id)
+        select(Application)
+        .where(
+            Application.id == application_id,
+            Application.status == ApplicationStatus.ACTIVE
+        )
     )).scalar_one_or_none()
     if not application:
         raise HTTPException(
@@ -160,9 +165,17 @@ async def get_user_applications(
                 hidden_applications.c.teacher_id == user_id
             )
         )
+        .outerjoin(
+            Match,
+            and_(
+                Match.application_id == Application.id,
+                Match.teacher_id == user_id
+            )
+        )
         .where(
             Application.status == ApplicationStatus.ACTIVE,
-            hidden_applications.c.application_id.is_(None)
+            hidden_applications.c.application_id.is_(None),
+            Match.id.is_(None),
         )
         .order_by(
             Application.price.desc(),
@@ -196,14 +209,53 @@ async def get_user_applications(
             )
         )
 
-    if filters.lessons_counts:
-        query = query.where(Application.lessons_count.in_(filters.lessons_counts))
+    if filters.lessons_counts_list:
+        query = query.where(Application.lessons_count.in_(filters.lessons_counts_list))
 
     # Пагинация
     query = query.limit(limit).offset(offset)
 
     result = await session.execute(query)
     rows = result.all()
+
+    return [
+        ApplicationResponse(
+            id=app.id,
+            subject_name=subject_name,
+            price=app.price,
+            lessons_count=app.lessons_count,
+            created_at=app.created_at,
+            status=app.status,
+        )
+        for app, subject_name in rows
+    ]
+
+
+async def get_application_student(
+    user_id: int,
+    session: AsyncSession,
+    filters: StudentApplicationFilters,
+) -> list[ApplicationResponse]:
+    """Получение списка заявок ученика"""
+    statuses = [ApplicationStatus.ACTIVE, ApplicationStatus.ACCEPTED]
+    if filters.archived:
+        statuses.append(ApplicationStatus.ARCHIVED)
+    query = (
+        select(
+            Application,
+            Subject.name.label("subject_name")
+        )
+        .join(Student, Student.id == Application.student_id)
+        .join(Subject, Subject.id == Application.subject_id)
+        .where(
+            Application.status.in_(statuses),
+            Application.student_id == user_id,
+        )
+        .order_by(
+            Application.created_at.desc()
+        )
+    )
+    rows = (await session.execute(query)).all()
 
     return [
         ApplicationResponse(
@@ -286,6 +338,23 @@ async def request_user_application(
             detail="Заявка не найдена"
         )
 
+    exists_match = (
+        await session.scalar(
+            select(
+                exists().where(
+                    Match.application_id == application_id,
+                    Match.teacher_id == user_id,
+                    Match.student_id == application.student_id,
+                )
+            )
+        )
+    )
+
+    if exists_match:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Вы уже откликнулись на эту заявку",
+        )
     match = Match(
         student_id=application.student_id,
         teacher_id=user_id,
@@ -318,18 +387,24 @@ async def request_user_application(
 
 
 async def accept_user_application(
-    application_id: int,
+    match_id: int,
     user_id: int,
     session: AsyncSession
 ) -> None:
-    """Принятие заявки"""
+    """Принятие отклика на заявку"""
     match = (await session.execute(
-        select(Match).where(Match.application_id == application_id)
+        select(Match).where(Match.id == match_id, Match.status == MatchStatus.REQUEST)
     )).scalar_one_or_none()
+    if not match:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Отклик не найден"
+        )
+
     application = (await session.execute(
-        select(Application).where(Application.id == application_id)
+        select(Application).where(Application.id == match.application_id)
     )).scalar_one_or_none()
-    if not application or not match:
+    if not application:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Заявка не найдена"
@@ -342,6 +417,21 @@ async def accept_user_application(
     application.status = ApplicationStatus.ACCEPTED
     match.status = MatchStatus.ACTIVE
     match.updated_at = datetime.utcnow()
+
+    # Отклоняем все остальные заявки в статусе REQUEST
+    await session.execute(
+        update(Match)
+        .where(
+            Match.application_id == match.application_id,
+            Match.id != match.id,
+            Match.status == MatchStatus.REQUEST
+        )
+        .values(
+            status=MatchStatus.REJECTED,
+            updated_at=datetime.utcnow()
+        )
+    )
+
     await session.commit()
 
     # Отправка уведомления репетитору
@@ -362,18 +452,23 @@ async def accept_user_application(
 
 
 async def reject_user_application(
-    application_id: int,
+    match_id: int,
     user_id: int,
     session: AsyncSession
 ) -> None:
     """Отклонение заявки"""
     match = (await session.execute(
-        select(Match).where(Match.application_id == application_id)
+        select(Match).where(Match.id == match_id, Match.status == MatchStatus.REQUEST)
     )).scalar_one_or_none()
+    if match is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Отклик не найден"
+        )
     application = (await session.execute(
-        select(Application).where(Application.id == application_id)
+        select(Application).where(Application.id == match.application_id)
     )).scalar_one_or_none()
-    if not application or not match:
+    if not application:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Заявка не найдена"
@@ -386,4 +481,25 @@ async def reject_user_application(
     application.status = ApplicationStatus.ARCHIVED
     match.status = MatchStatus.REJECTED
     match.updated_at = datetime.utcnow()
+    await session.commit()
+
+
+async def close_user_application(
+    application_id: int,
+    session: AsyncSession
+) -> None:
+    """Закрытие заявки ученика"""
+    application = (await session.execute(
+        select(Application)
+        .where(
+            Application.id == application_id,
+            Application.status == ApplicationStatus.ACTIVE
+        )
+    )).scalar_one_or_none()
+    if not application:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Заявка не найдена"
+        )
+    application.status = ApplicationStatus.ARCHIVED
     await session.commit()

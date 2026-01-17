@@ -1,6 +1,6 @@
 """Роутер для работы с репетиторами"""
 
-from fastapi import APIRouter, Depends, Query, UploadFile
+from fastapi import APIRouter, Depends, File, Query, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.dependencies import require_role, UserRole, get_session
@@ -68,7 +68,7 @@ async def get_matches(
 
 @router.post("/avatar", summary="Обновление аватара")
 async def update_teacher_avatar(
-    avatar_file: UploadFile,
+    avatar_file: UploadFile = File(..., description="Изображение"),
     user_id: int = Depends(require_role(UserRole.TEACHER)),
     session: AsyncSession = Depends(get_session)
 ) -> None:
@@ -133,7 +133,7 @@ async def update_teacher_subjects(
     await update_subjects(user_id, subjects, session)
 
 
-@router.patch("/notification", summary="Обновление уведомлений")
+@router.patch("/notifications", summary="Обновление уведомлений")
 async def update_teacher_notification(
     data: UpdateNotificationRequest,
     user_id: int = Depends(require_role(UserRole.TEACHER)),

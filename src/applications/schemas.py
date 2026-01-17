@@ -36,6 +36,11 @@ class ApplicationFilters(BaseModel):
         return [LessonsCount(s.strip()) for s in self.lessons_counts.split(",") if s.strip()]  # pylint: disable=no-member
 
 
+class StudentApplicationFilters(BaseModel):
+    """Фильтры для получения заявок ученика"""
+    archived: bool | None = Field(None, description="Закрытые")
+
+
 class ApplicationResponse(BaseModel):
     """Схема заявки"""
     id: int = Field(..., description="ID заявки")

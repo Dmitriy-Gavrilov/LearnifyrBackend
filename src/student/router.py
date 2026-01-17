@@ -36,20 +36,8 @@ async def get_student_profile(
     return await get_profile(user_id, session)
 
 
-@router.get("/{student_id}", summary="Получение профиля студента от лица репетитора")
-async def get_student_by_id(
-    student_id: int,
-    _user_id: int = Depends(require_role(UserRole.TEACHER)),
-    session: AsyncSession = Depends(get_session)
-) -> StudentProfileById:
-    """
-    Получение профиля студента от лица репетитора
-    """
-    return await get_profile_by_id(student_id, session)
-
-
 @router.get("/matches", summary="Получение списка откликов")
-async def get_matches(
+async def get_matches_student(
     archived: bool = Query(False, description="Завершенные"),
     rejected: bool = Query(False, description="Отклоненные"),
     user_id: int = Depends(require_role(UserRole.STUDENT)),
@@ -57,6 +45,18 @@ async def get_matches(
 ) -> list[MatchResponse]:
     """Получение списка откликов на заявки"""
     return await get_student_matches(user_id, session, archived, rejected)
+
+
+@router.get("/{student_id}", summary="Получение профиля студента от лица репетитора")
+async def get_student_by_id(
+    student_id: int,
+    user_id: int = Depends(require_role(UserRole.TEACHER)),
+    session: AsyncSession = Depends(get_session)
+) -> StudentProfileById:
+    """
+    Получение профиля студента от лица репетитора
+    """
+    return await get_profile_by_id(user_id, student_id, session)
 
 
 @router.patch("/profile", summary="Обновление профиля")
@@ -88,7 +88,7 @@ async def update_student_active(
     await update_active_profile(user_id, data, session)
 
 
-@router.patch("/notification", summary="Обновление уведомлений")
+@router.patch("/notifications", summary="Обновление уведомлений")
 async def update_student_notification(
     data: UpdateNotificationRequest,
     user_id: int = Depends(require_role(UserRole.STUDENT)),

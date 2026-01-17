@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.dependencies import UserRole, get_session, require_role
 from src.matches.service import complete_user_match
 
-router = APIRouter(prefix="/matches", tags=["Applications"])
+router = APIRouter(prefix="/matches", tags=["Matches"])
 
 
 @router.post("/{match_id}/complete", summary="Завершение отклика")

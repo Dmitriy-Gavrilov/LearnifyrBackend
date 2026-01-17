@@ -6,7 +6,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.dependencies import require_role, UserRole, get_session
 from src.applications.service import (
     accept_user_application,
+    close_user_application,
     create_user_application,
+    get_application_student,
     get_user_applications,
     get_user_detail_application,
     hide_user_application,
@@ -21,6 +23,7 @@ from src.applications.schemas import (
     CreateApplicationResponse,
     DetailApplicationResponse,
     RequestApplicationResponse,
+    StudentApplicationFilters,
     UpdateApplicationRequest
 )
 
@@ -35,6 +38,16 @@ async def get_applications(
 ) -> list[ApplicationResponse]:
     """Получение списка заявок"""
     return await get_user_applications(user_id, session, filters)
+
+
+@router.get("/student", summary="Получение списка своих заявок")
+async def get_student_applications(
+    filters: StudentApplicationFilters = Query(),
+    user_id: int = Depends(require_role(UserRole.STUDENT)),
+    session: AsyncSession = Depends(get_session)
+) -> list[ApplicationResponse]:
+    """Получение списка своих заявок"""
+    return await get_application_student(user_id, session, filters)
 
 
 @router.get("/{application_id}", summary="Получение заявки")
@@ -68,6 +81,16 @@ async def update_application(
     await update_user_application(application_id, user_id, data, session)
 
 
+@router.post("/{application_id}/close", summary="Закрыть заявку")
+async def close_application(
+    application_id: int,
+    _user_id: int = Depends(require_role(UserRole.STUDENT)),
+    session: AsyncSession = Depends(get_session)
+) -> None:
+    """Закрыть заявку"""
+    return await close_user_application(application_id, session)
+
+
 @router.post("/{application_id}/request", summary="Откликнуться на заявку")
 async def request_application(
     application_id: int,
@@ -88,21 +111,21 @@ async def hide_application(
     await hide_user_application(application_id, user_id, session)
 
 
-@router.post("/{application_id}/accept", summary="Принять заявку")
+@router.post("/{match_id}/accept", summary="Принять заявку")
 async def accept_application(
-    application_id: int,
+    match_id: int,
     user_id: int = Depends(require_role(UserRole.STUDENT)),
     session: AsyncSession = Depends(get_session)
 ) -> None:
     """Принять заявку"""
-    await accept_user_application(application_id, user_id, session)
+    await accept_user_application(match_id, user_id, session)
 
 
-@router.post("/{application_id}/reject", summary="Отклонить заявку")
+@router.post("/{match_id}/reject", summary="Отклонить заявку")
 async def reject_application(
-    application_id: int,
+    match_id: int,
     user_id: int = Depends(require_role(UserRole.STUDENT)),
     session: AsyncSession = Depends(get_session)
 ) -> None:
     """Отклонить заявку"""
-    await reject_user_application(application_id, user_id, session)
+    await reject_user_application(match_id, user_id, session)

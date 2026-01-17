@@ -8,7 +8,7 @@ from typing import Sequence
 from src.db.models.application import LessonsCount
 from src.db.models.teacher import Teacher
 from src.integrations.redis import redis_service
-from src.integrations.schemas import NotificationEvent, EventType
+from src.integrations.schemas import NotificationEvent, EventType, ReviewEvent
 from src.settings import redis_settings
 
 
@@ -27,6 +27,19 @@ async def send_notification(user_id: int, message: str) -> None:
             event_type=EventType.NOTIFICATION,
             user_id=user_id,
             message=message
+        ).model_dump())}
+    )
+
+
+async def send_review_notification(user_id: int, message: str, review_id: int) -> None:
+    """Отправка уведомления пользователю о новом отзыве"""
+    await redis_service.xadd(
+        redis_settings.STREAM_FROM_BACKEND,
+        fields={"payload": json.dumps(ReviewEvent(
+            event_type=EventType.REVIEW,
+            user_id=user_id,
+            message=message,
+            review_id=review_id
         ).model_dump())}
     )
 

@@ -5,12 +5,15 @@ import asyncio
 import json
 
 from fastapi import HTTPException
+from sqlalchemy import select
 
+from src.db.models.review import Review
 from src.settings import redis_settings
 from src.dependencies import get_db_session, get_user_by_username
 from src.integrations.redis import read_stream_messages, redis_service
 from src.integrations.schemas import (
     BotCommonStart,
+    BotReviewResponse,
     EventType,
     BotRegistrationEvent,
     RegistrationResponseEvent,
@@ -42,6 +45,8 @@ async def listen_bot_events():
                 event_type = payload["event_type"]
                 message = "Неизвестная ошибка"
 
+                logger.info("Получено событие от Telegram-бота: %s", event_type)
+
                 # Обрабатываем события
                 if event_type == EventType.REGISTRATION_START:
                     event = BotRegistrationEvent(**payload)
@@ -49,6 +54,10 @@ async def listen_bot_events():
                 elif event_type == EventType.COMMON_START:
                     event = BotCommonStart(**payload)
                     message = await handle_common_start(event)
+                elif event_type == EventType.REVIEW_RESPONSE:
+                    event = BotReviewResponse(**payload)
+                    message = await handle_review_response(event)
+                    continue
 
                 # Отправляем ответ обратно в бот
                 response = RegistrationResponseEvent(
@@ -92,3 +101,13 @@ async def handle_common_start(event: BotCommonStart) -> str:
             return "Вы уже зарегистрированы. Для входа в систему перейдите на сайт."
         except HTTPException:
             return "Для регистрации в системе перейдите на сайт"
+
+async def handle_review_response(event: BotReviewResponse) -> None:
+    """Обработка ответа на отзыв"""
+    async with get_db_session() as session:
+        review = (await session.execute(
+            select(Review).where(Review.id == event.review_id)
+        )).scalar_one()
+        if event.action == "publish":
+            review.is_published = True
+        await session.commit()

@@ -70,6 +70,24 @@ async def get_teacher_related(
     return teacher, avatar_url, reviews, subjects
 
 
+def calculate_rating(reviews: list[Review]) -> float:
+    """Расчет рейтинга репетитора с учетом количества отзывов"""
+    if not reviews:
+        return 0.0
+
+    avg_rating = sum(review.rating for review in reviews) / len(reviews)
+    count = len(reviews)
+
+    if count < 5:
+        rating = avg_rating * 0.8
+    elif count < 10:
+        rating = avg_rating * 0.9
+    else:
+        rating = avg_rating
+
+    return round(rating, 1)
+
+
 async def get_all_teachers(
     session: AsyncSession,
     limit: int = 10,
@@ -118,7 +136,7 @@ async def get_profile(user_id: int, session: AsyncSession) -> TeacherProfile:
         active=teacher.active,
         avatar_url=avatar_url,
         rate=teacher.rate,
-        rating=teacher.rating,
+        rating=calculate_rating(reviews),
         application_notification=teacher.application_notification,
         review_notification=teacher.review_notification,
         response_notification=teacher.response_notification,
@@ -144,7 +162,7 @@ async def get_profile_by_id(teacher_id: int, session: AsyncSession) -> TeacherBy
         bio=teacher.bio,
         avatar_url=avatar_url,
         rate=teacher.rate,
-        rating=teacher.rating,
+        rating=calculate_rating(reviews),
         subjects=subjects,
         reviews=[ReviewSchema(
             rating=review.rating, text=review.text, created_at=review.created_at)
