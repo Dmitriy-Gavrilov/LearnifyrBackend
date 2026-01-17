@@ -62,3 +62,4 @@ class ReviewEvent(BaseEvent):
     user_id: int = Field(..., description="ID пользователя в Telegram")
     message: str = Field(..., description="Сообщение пользователю")
     review_id: int = Field(..., description="ID отзыва")
+

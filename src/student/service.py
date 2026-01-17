@@ -66,6 +66,33 @@ async def get_profile(user_id: int, session: AsyncSession) -> StudentProfile:
             for review in reviews]
     )
 
+async def get_profile_by_id(
+    student_id: int,
+    session: AsyncSession
+) -> StudentProfileById:
+    """ Получение профиля студента от лица репетитора"""
+    student, reviews = await get_student_related(student_id, session)
+    return StudentProfileById(
+        surname=student.surname,
+        name=student.name,
+        patronymic=student.patronymic,
+        age=student.age,
+        bio=student.bio,
+        reviews=[ReviewSchema(
+            rating=review.rating, text=review.text, created_at=review.created_at)
+            for review in reviews]
+    )
+
+
+async def get_student_matches(
+    user_id: int,
+    session: AsyncSession,
+    archived: bool = False,
+    rejected: bool = False
+) -> list[MatchResponse]:
+    """Получение списка откликов студента"""
+    return await get_user_matches(user_id, "student", session, archived, rejected)
+
 
 async def get_profile_by_id(
     user_id: int,

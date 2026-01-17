@@ -355,6 +355,7 @@ async def request_user_application(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Вы уже откликнулись на эту заявку",
         )
+
     match = Match(
         student_id=application.student_id,
         teacher_id=user_id,
